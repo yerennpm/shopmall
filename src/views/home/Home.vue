@@ -3,12 +3,21 @@
     <nav-bar class="home-nav">
       <div slot="center">购物街</div>
     </nav-bar>
-    <scroll class="content" ref="scroll">
-      <home-swiper :banners="banners"></home-swiper>
+
+    <tab-control :titles="['流行', '新款', '精选']"
+                 @tabClick="tabClick"
+                 class="tab-control" v-show="isTabFixed">
+    </tab-control>
+
+    <scroll class="content" ref="scroll"
+            :pull-up-load="true"
+            @pullingUp="loadMore"
+            @scroll="contentScroll">
+      <home-swiper :banners="banners" @swiperImageLoad="imgLoad"></home-swiper>
       <home-recommend :recommends="recommends"></home-recommend>
       <home-feature></home-feature>
-      <tab-control :titles="['流行', '新款', '精选']"
-                   class="tab-control"
+      <tab-control ref="tabControl"
+                   :titles="['流行', '新款', '精选']"
                    @tabClick="tabClick"></tab-control>
       <goods-list :goods="goods[currentType].list"></goods-list>
     </scroll>
@@ -40,6 +49,8 @@
         banners: [],
         recommends: [],
         currentType: 'pop',
+        topoffsetTop: 0,
+        isTabFixed: false,
         goods: {
           'pop': {page: 0, list: []},
           'new': {page: 0, list: []},
@@ -64,6 +75,9 @@
       this.getHomeGoods('new')
       this.getHomeGoods('sell')
     },
+    mounted() {
+
+    },
     methods: {
       //事件监听方法
       tabClick(index) {
@@ -82,6 +96,17 @@
       backClick() {
         this.$refs.scroll.scrollTo(0, 0)
       },
+      loadMore() {
+        this.getHomeGoods(this.currentType)
+      },
+      imgLoad() {
+        //获取tabControl的offsetTop
+        this.topoffsetTop = this.$refs.tabControl.$el.offsetTop;
+      },
+      contentScroll(position) {
+        // 决定tabControl是否吸顶（position:fixed）
+        this.isTabFixed = (-position.y) > this.topoffsetTop
+      },
 
 
 
@@ -99,6 +124,8 @@
           // console.log(res);
           this.goods[type].list.push(...res.data.list)
           this.goods[type].page += 1
+
+          this.$refs.scroll.finishPullUp()
         })
       }
     }
@@ -119,8 +146,8 @@
     z-index: 9;
   }
   .tab-control {
-    position: sticky;
-    top: 44px;
+    position: relative;
+    z-index: 9;
   }
   .content {
     overflow: hidden;
